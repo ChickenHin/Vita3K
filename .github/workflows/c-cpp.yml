@@ -1,13 +1,7 @@
 name: Build CI
 
 on:
-  push:
-    paths-ignore:
-      - '**.md'
-  pull_request:
-    paths-ignore:
-      - '**.md'
-
+  workflow_dispatch: 
 env:
   BUILD_CONFIG: Release
   QT_VERSION: '6.11.0'
@@ -29,42 +23,6 @@ jobs:
             linuxdeploy_command: /usr/local/bin/linuxdeploy-x86_64.AppImage
             cache_path: ''
             qt_install_deps: 'true'
-
-          - platform: linux-arm64
-            runs_on: ubuntu-24.04-arm
-            arch: aarch64
-            cmake_preset: ci-linux-clang-appimage
-            linuxdeploy_command: /usr/local/bin/linuxdeploy-aarch64.AppImage
-            cache_path: ''
-            qt_install_deps: 'true'
-
-          - platform: windows-x64
-            runs_on: windows-latest
-            arch: x86_64
-            cmake_preset: ci-windows-msvc
-            vcpkg_root: C:\vcpkg
-            vcpkg_triplet: x64-windows-static-md
-            cache_path: C:\vcpkg-binary-cache
-            qt_install_deps: 'false'
-
-          - platform: windows-arm64
-            runs_on: windows-11-arm
-            cmake_preset: ci-windows-msys2-clang
-            msys2_env: CLANGARM64
-            cache_path: C:\msys2-ccache
-            qt_install_deps: 'false'
-
-          - platform: macos-x64
-            runs_on: macos-latest
-            cmake_preset: ci-macos-x64
-            cache_path: ~/Library/Caches/ccache
-            qt_install_deps: 'false'
-
-          - platform: macos-arm64
-            runs_on: macos-latest
-            cmake_preset: ci-macos-arm64
-            cache_path: ~/Library/Caches/ccache
-            qt_install_deps: 'false'
 
     steps:
       - uses: actions/checkout@v7
@@ -178,173 +136,173 @@ jobs:
         run: bash ./.ci/build-windows-msys2.sh --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }}
         if: matrix.platform == 'windows-arm64'
 
-      - name: Compute artifact paths
-        shell: bash
-        run: |
-          echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
-          echo "ARTIFACT_NAME=vita3k-$(git rev-parse --short HEAD)-${{ matrix.platform }}" >> "$GITHUB_ENV"
-          echo "ARTIFACT_DIR=artifacts/vita3k-$(git rev-parse --short HEAD)-${{ matrix.platform }}" >> "$GITHUB_ENV"
+      # - name: Compute artifact paths
+      #   shell: bash
+      #   run: |
+      #     echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+      #     echo "ARTIFACT_NAME=vita3k-$(git rev-parse --short HEAD)-${{ matrix.platform }}" >> "$GITHUB_ENV"
+      #     echo "ARTIFACT_DIR=artifacts/vita3k-$(git rev-parse --short HEAD)-${{ matrix.platform }}" >> "$GITHUB_ENV"
 
-      - name: Stage desktop artifact (Linux/macOS)
-        run: bash ./.ci/package-desktop.sh --platform ${{ matrix.platform }} --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }} --output-dir "${{ env.ARTIFACT_DIR }}"
-        if: startsWith(matrix.platform, 'linux-') || startsWith(matrix.platform, 'macos-')
+      # - name: Stage desktop artifact (Linux/macOS)
+      #   run: bash ./.ci/package-desktop.sh --platform ${{ matrix.platform }} --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }} --output-dir "${{ env.ARTIFACT_DIR }}"
+      #   if: startsWith(matrix.platform, 'linux-') || startsWith(matrix.platform, 'macos-')
 
-      - name: Stage desktop artifact (Windows MSVC)
-        shell: bash
-        run: bash ./.ci/package-desktop.sh --platform ${{ matrix.platform }} --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }} --output-dir "${{ env.ARTIFACT_DIR }}"
-        if: matrix.platform == 'windows-x64'
+      # - name: Stage desktop artifact (Windows MSVC)
+      #   shell: bash
+      #   run: bash ./.ci/package-desktop.sh --platform ${{ matrix.platform }} --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }} --output-dir "${{ env.ARTIFACT_DIR }}"
+      #   if: matrix.platform == 'windows-x64'
 
-      - name: Stage desktop artifact (Windows ARM MSYS2)
-        shell: msys2 {0}
-        run: bash ./.ci/package-desktop.sh --platform ${{ matrix.platform }} --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }} --output-dir "${{ env.ARTIFACT_DIR }}"
-        if: matrix.platform == 'windows-arm64'
+      # - name: Stage desktop artifact (Windows ARM MSYS2)
+      #   shell: msys2 {0}
+      #   run: bash ./.ci/package-desktop.sh --platform ${{ matrix.platform }} --preset ${{ matrix.cmake_preset }} --config ${{ env.BUILD_CONFIG }} --output-dir "${{ env.ARTIFACT_DIR }}"
+      #   if: matrix.platform == 'windows-arm64'
 
-      - name: Print ccache statistics
-        run: ccache -s
-        if: startsWith(matrix.platform, 'macos-')
+      # - name: Print ccache statistics
+      #   run: ccache -s
+      #   if: startsWith(matrix.platform, 'macos-')
 
-      - name: Print sccache statistics
-        run: sccache --show-stats
-        if: startsWith(matrix.platform, 'linux-') || matrix.platform == 'windows-x64'
+      # - name: Print sccache statistics
+      #   run: sccache --show-stats
+      #   if: startsWith(matrix.platform, 'linux-') || matrix.platform == 'windows-x64'
 
-      - name: Upload desktop artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_DIR }}
+      # - name: Upload desktop artifact
+      #   uses: actions/upload-artifact@v7
+      #   with:
+      #     name: ${{ env.ARTIFACT_NAME }}
+      #     path: ${{ env.ARTIFACT_DIR }}
 
-  android-build:
-    name: Android
-    runs-on: ubuntu-latest
-    env:
-      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
+  # android-build:
+  #   name: Android
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-binary-cache
 
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-          submodules: recursive
+  #   steps:
+  #     - uses: actions/checkout@v7
+  #       with:
+  #         fetch-depth: 0
+  #         submodules: recursive
 
-      - name: Restore vcpkg binary cache
-        uses: actions/cache@v6
-        with:
-          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-          key: vcpkg-bincache-android-${{ hashFiles('vcpkg.json', 'CMakeLists.txt', 'cmake/**', '.ci/**', 'android/app/build.gradle', '.github/workflows/c-cpp.yml') }}
-          restore-keys: |
-            vcpkg-bincache-android-
+  #     - name: Restore vcpkg binary cache
+  #       uses: actions/cache@v6
+  #       with:
+  #         path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+  #         key: vcpkg-bincache-android-${{ hashFiles('vcpkg.json', 'CMakeLists.txt', 'cmake/**', '.ci/**', 'android/app/build.gradle', '.github/workflows/c-cpp.yml') }}
+  #         restore-keys: |
+  #           vcpkg-bincache-android-
 
-      - name: Set up Java
-        uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: '17'
+  #     - name: Set up Java
+  #       uses: actions/setup-java@v6
+  #       with:
+  #         distribution: temurin
+  #         java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
-        with:
-          add-job-summary: on-failure
-          cache-provider: basic
-          validate-wrappers: false
+  #     - name: Set up Gradle
+  #       uses: gradle/actions/setup-gradle@v6
+  #       with:
+  #         add-job-summary: on-failure
+  #         cache-provider: basic
+  #         validate-wrappers: false
 
-      - name: Set up Android SDK tools
-        uses: android-actions/setup-android@v4
+  #     - name: Set up Android SDK tools
+  #       uses: android-actions/setup-android@v4
 
-      - name: Set up Android build environment
-        env:
-          VCPKG_ROOT: /usr/local/share/vcpkg
-        run: |
-          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
-          bash ./.ci/setup-android.sh
+  #     - name: Set up Android build environment
+  #       env:
+  #         VCPKG_ROOT: /usr/local/share/vcpkg
+  #       run: |
+  #         mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+  #         bash ./.ci/setup-android.sh
 
-      - uses: hendrikmuhs/ccache-action@v1.2.23
+  #     - uses: hendrikmuhs/ccache-action@v1.2.23
 
-      - name: Decode Android keystore
-        env:
-          KEYSTORE_ENCODED: ${{ secrets.KEYSTORE }}
-        run: |
-          if [ -n "$KEYSTORE_ENCODED" ]; then
-            echo "$KEYSTORE_ENCODED" | base64 --decode > /home/runner/keystore.jks
-          fi
+  #     - name: Decode Android keystore
+  #       env:
+  #         KEYSTORE_ENCODED: ${{ secrets.KEYSTORE }}
+  #       run: |
+  #         if [ -n "$KEYSTORE_ENCODED" ]; then
+  #           echo "$KEYSTORE_ENCODED" | base64 --decode > /home/runner/keystore.jks
+  #         fi
 
-      - name: Compute artifact paths
-        shell: bash
-        run: |
-          echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
-          echo "ARTIFACT_NAME=vita3k-$(git rev-parse --short HEAD)-android" >> "$GITHUB_ENV"
-          echo "ARTIFACT_DIR=artifacts/vita3k-$(git rev-parse --short HEAD)-android" >> "$GITHUB_ENV"
+  #     - name: Compute artifact paths
+  #       shell: bash
+  #       run: |
+  #         echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+  #         echo "ARTIFACT_NAME=vita3k-$(git rev-parse --short HEAD)-android" >> "$GITHUB_ENV"
+  #         echo "ARTIFACT_DIR=artifacts/vita3k-$(git rev-parse --short HEAD)-android" >> "$GITHUB_ENV"
 
-      - name: Build Android target
-        env:
-          SIGNING_STORE_PATH: /home/runner/keystore.jks
-          SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
-          SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
-          SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
-          VCPKG_ROOT: /usr/local/share/vcpkg
-          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
-        run: bash ./.ci/build-android.sh "${{ env.ARTIFACT_DIR }}"
+  #     - name: Build Android target
+  #       env:
+  #         SIGNING_STORE_PATH: /home/runner/keystore.jks
+  #         SIGNING_STORE_PASSWORD: ${{ secrets.SIGNING_STORE_PASSWORD }}
+  #         SIGNING_KEY_ALIAS: ${{ secrets.SIGNING_KEY_ALIAS }}
+  #         SIGNING_KEY_PASSWORD: ${{ secrets.SIGNING_KEY_PASSWORD }}
+  #         VCPKG_ROOT: /usr/local/share/vcpkg
+  #         ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+  #       run: bash ./.ci/build-android.sh "${{ env.ARTIFACT_DIR }}"
 
-      - name: Print Android ccache statistics
-        run: ccache -s
+  #     - name: Print Android ccache statistics
+  #       run: ccache -s
 
-      - name: Upload Android artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: ${{ env.ARTIFACT_DIR }}
+  #     - name: Upload Android artifact
+  #       uses: actions/upload-artifact@v7
+  #       with:
+  #         name: ${{ env.ARTIFACT_NAME }}
+  #         path: ${{ env.ARTIFACT_DIR }}
 
-  create-release:
-    needs: [desktop-build, android-build]
-    runs-on: ubuntu-latest
-    concurrency:
-      group: create-release
-      cancel-in-progress: false
-    if: |
-      github.ref == 'refs/heads/master' &&
-      github.repository == 'Vita3K/Vita3K'
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+  # create-release:
+  #   needs: [desktop-build, android-build]
+  #   runs-on: ubuntu-latest
+  #   concurrency:
+  #     group: create-release
+  #     cancel-in-progress: false
+  #   if: |
+  #     github.ref == 'refs/heads/master' &&
+  #     github.repository == 'Vita3K/Vita3K'
+  #   steps:
+  #     - uses: actions/checkout@v7
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v8
+  #     - name: Download artifacts
+  #       uses: actions/download-artifact@v8
 
-      - name: Get commit info
-        run: |
-          echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
-          echo "BUILD_VARIABLE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
-          echo "LAST_COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> "$GITHUB_ENV"
+  #     - name: Get commit info
+  #       run: |
+  #         echo "GIT_SHORT_SHA=$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+  #         echo "BUILD_VARIABLE=$(git rev-list --count HEAD)" >> "$GITHUB_ENV"
+  #         echo "LAST_COMMIT_MESSAGE=$(git log -1 --pretty=format:'%s')" >> "$GITHUB_ENV"
 
-      - name: Get last committer
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          COMMITTER=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-          https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }} \
-          | jq -r '.commit.author.name')
-          echo "COMMITTER_NAME=$COMMITTER" >> "$GITHUB_ENV"
+  #     - name: Get last committer
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #       run: |
+  #         COMMITTER=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+  #         https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }} \
+  #         | jq -r '.commit.author.name')
+  #         echo "COMMITTER_NAME=$COMMITTER" >> "$GITHUB_ENV"
 
-      - name: Prepare release artifacts
-        run: bash ./.ci/release-collect.sh
+  #     - name: Prepare release artifacts
+  #       run: bash ./.ci/release-collect.sh
 
-      - name: Upload to store repository
-        uses: tcnksm/ghr@v0
-        with:
-          tag: ${{ env.BUILD_VARIABLE }}
-          path: artifacts-store/
-          owner: ${{ github.repository_owner }}
-          repository: Vita3K-builds
-          name: "Build: ${{ env.BUILD_VARIABLE }}"
-          body: "Corresponding commit: [${{ env.LAST_COMMIT_MESSAGE }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) (${{ env.COMMITTER_NAME }})"
-          token: ${{ secrets.STORE_TOKEN }}
+  #     - name: Upload to store repository
+  #       uses: tcnksm/ghr@v0
+  #       with:
+  #         tag: ${{ env.BUILD_VARIABLE }}
+  #         path: artifacts-store/
+  #         owner: ${{ github.repository_owner }}
+  #         repository: Vita3K-builds
+  #         name: "Build: ${{ env.BUILD_VARIABLE }}"
+  #         body: "Corresponding commit: [${{ env.LAST_COMMIT_MESSAGE }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }}) (${{ env.COMMITTER_NAME }})"
+  #         token: ${{ secrets.STORE_TOKEN }}
 
-      - name: Upload to master repository
-        uses: tcnksm/ghr@v0
-        with:
-          tag: continuous
-          path: artifacts-master/
-          delete: "true"
-          owner: ${{ github.repository_owner }}
-          repository: Vita3K
-          name: "Automatic CI builds"
-          body: "Corresponding commit: ${{ github.sha }}\nVita3K Build: ${{ env.BUILD_VARIABLE }}"
+  #     - name: Upload to master repository
+  #       uses: tcnksm/ghr@v0
+  #       with:
+  #         tag: continuous
+  #         path: artifacts-master/
+  #         delete: "true"
+  #         owner: ${{ github.repository_owner }}
+  #         repository: Vita3K
+  #         name: "Automatic CI builds"
+  #         body: "Corresponding commit: ${{ github.sha }}\nVita3K Build: ${{ env.BUILD_VARIABLE }}"
